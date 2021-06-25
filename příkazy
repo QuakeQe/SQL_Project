@@ -1,0 +1,142 @@
+#první pomocná tabulka
+CREATE TABLE promenne_casove AS
+SELECT
+	country,
+	date,
+	CASE 
+		WHEN DAYOFWEEK(date) IN (1,7) THEN 1
+		ELSE 0
+	END AS weekend,
+	CASE 
+		WHEN (date BETWEEN '2020-03-21' AND '2020-06-20') OR (date BETWEEN '2021-03-21' AND '2021-06-20') THEN 0
+		WHEN (date BETWEEN '2020-06-21' AND '2020-06-20') OR (date BETWEEN '2021-06-21' AND '2021-06-20') THEN 1
+		WHEN (date BETWEEN '2020-09-21' AND '2020-09-20') OR (date BETWEEN '2021-09-21' AND '2021-09-20') THEN 2
+		WHEN (date BETWEEN '2020-12-21' AND '2021-03-20') OR (date BETWEEN '2019-12-21' AND '2020-03-20') THEN 3
+		END AS season
+	FROM covid19_basic_differences cbd 
+
+
+
+#druhá pomocná tabulka
+CREATE TABLE promenne_staty AS
+SELECT 
+	c.country,
+	c.population_density,
+	c.median_age_2018,
+	e2.GDP / c.population AS GDP_per_head,
+	e2.gini,
+	e2.mortaliy_under5,
+	ROUND((Christian / c.population) * 100,1) AS perc_christians,
+	ROUND((Muslim / c.population) * 100,1) AS perc_muslims,
+	ROUND((Atheist / c.population) * 100,1) AS perc_atheists,
+	ROUND((Hindu / c.population) * 100,1) AS perc_hindu,
+	ROUND((Buddhist / c.population) * 100,1) AS perc_buddhist,
+	ROUND((Folk / c.population) * 100,1)  AS perc_folk,
+	ROUND((Other / c.population) * 100,1)  AS perc_other,
+	ROUND((Jewish / c.population) * 100,1) AS perc_jewish,
+	ROUND(difference_life_expectency,1 ) AS life_expectency
+FROM countries c
+JOIN (SELECT
+		country,
+		GDP,
+		gini,
+		mortaliy_under5
+	FROM economies e
+	WHERE YEAR = 2019) e2
+ON c.country = e2.country
+JOIN (SELECT
+		region,
+		country,
+		MAX(CASE WHEN religion = 'Christianity' THEN population END) AS Christian,
+		MAX(CASE WHEN religion = 'Islam' THEN population END) AS Muslim,
+		MAX(CASE WHEN religion = 'Unaffiliated Religions' THEN population END) AS Atheist,
+		MAX(CASE WHEN religion = 'Hinduism' THEN population END) AS Hindu,
+		MAX(CASE WHEN religion = 'Buddhism' THEN population END) AS Buddhist,
+		MAX(CASE WHEN religion = 'Folk Religions' THEN population END) AS Folk,
+		MAX(CASE WHEN religion = 'Other Religions' THEN population END) AS Other,
+		MAX(CASE WHEN religion = 'Judaism' THEN population END) AS Jewish
+	FROM religions
+	WHERE year = 2020 AND region != 'World' AND country != 'All Countries'
+	GROUP BY region, country) nabozenstvi
+ON c.country = nabozenstvi.country 
+JOIN (SELECT 
+		*,
+		life_expectancy_2015 - life_expectancy_1965 AS difference_life_expectency
+FROM (SELECT 
+	*,
+	MAX(CASE WHEN `year` = 1965 THEN life_expectancy END) AS life_expectancy_1965,
+	MAX(CASE WHEN `year` = 2015 THEN life_expectancy END) AS life_expectancy_2015
+FROM life_expectancy le 
+WHERE year = 1965 OR year = 2015 GROUP BY iso3) ddd
+WHERE iso3 IS NOT NULL) rel
+ON c.country = rel.country
+
+
+
+#treti pomocná tabulka
+CREATE TABLE promenne_pocasi AS	
+SELECT
+	c.country,
+	w.city,
+	w.date,
+	/*(SELECT AVG(w1.temp)  AS aveg_temp FROM weather w1 WHERE 
+	w1.`time` IN ('06:00', '09:00', '12:00', '15:00', '18:00', '21:00') ) AS aveg_daily,*/
+	(SELECT COUNT(w2.`time`) FROM weather w2 WHERE w2.rain != '0.0 mm') AS count_hours_no_rain,
+	MAX(w.gust) AS max_gust
+FROM weather AS w 
+JOIN countries c 
+ON c.capital_city = w.city
+GROUP BY w.`date`, w.city
+
+
+
+#ctvrta pomocná tabulka
+CREATE TABLE testy AS
+SELECT
+	cbd.country,
+	cbd.`date` ,
+	cbd.confirmed,
+	ct.tests_performed,
+	c.population 
+FROM covid19_basic_differences cbd 
+LEFT JOIN covid19_tests ct 
+ON ct.country = cbd.country AND ct.`date` = cbd.`date` 
+LEFT JOIN countries c
+ON c.country = cbd.country
+
+
+
+#finální tabulka
+CREATE TABLE t_Lukas_Bujas_projekt_SQL_final AS
+SELECT 
+	testy.country,
+	testy.`date` ,
+	testy.confirmed,
+	testy.tests_performed,
+	testy.population,
+	promenne_casove.weekend,
+	promenne_casove.season,
+	promenne_staty.population_density,
+	promenne_staty.median_age_2018,
+	promenne_staty.GDP_per_head,
+	promenne_staty.gini,
+	promenne_staty.mortaliy_under5,
+	promenne_staty.perc_christians,
+	promenne_staty.perc_muslims,
+	promenne_staty.perc_atheists,
+	promenne_staty.perc_hindu,
+	promenne_staty.perc_buddhist,
+	promenne_staty.perc_folk,
+	promenne_staty.perc_other,
+	promenne_staty.perc_jewish,
+	promenne_staty.life_expectency,
+	promenne_pocasi.count_hours_no_rain,
+	promenne_pocasi.max_gust
+FROM testy 
+LEFT JOIN promenne_casove 
+ON testy.country = promenne_casove.country
+LEFT JOIN promenne_staty
+ON testy.country = promenne_staty.country
+LEFT JOIN promenne_pocasi 
+ON testy.country = promenne_pocasi.country
+#ORDER BY testy.date
