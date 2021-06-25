@@ -2,7 +2,7 @@
 CREATE TABLE promenne_casove AS
 SELECT
 	country,
-	date,
+	`date`,
 	CASE 
 		WHEN DAYOFWEEK(date) IN (1,7) THEN 1
 		ELSE 0
@@ -78,7 +78,7 @@ CREATE TABLE promenne_pocasi AS
 SELECT
 	c.country,
 	w.city,
-	w.date,
+	w.`date`,
 	/*(SELECT AVG(w1.temp)  AS aveg_temp FROM weather w1 WHERE 
 	w1.`time` IN ('06:00', '09:00', '12:00', '15:00', '18:00', '21:00') ) AS aveg_daily,*/
 	(SELECT COUNT(w2.`time`) FROM weather w2 WHERE w2.rain != '0.0 mm') AS count_hours_no_rain,
@@ -134,9 +134,9 @@ SELECT
 	promenne_pocasi.max_gust
 FROM testy 
 LEFT JOIN promenne_casove 
-ON testy.country = promenne_casove.country
+ON testy.country = promenne_casove.country AND testy.`date` = promenne_casove.`date`
 LEFT JOIN promenne_staty
-ON testy.country = promenne_staty.country
+ON testy.country = promenne_staty.country AND testy.`date` = promenne_staty.`date`
 LEFT JOIN promenne_pocasi 
-ON testy.country = promenne_pocasi.country
-ORDER BY testy.date, testy.country
+ON testy.country = promenne_pocasi.country AND testy.`date` = promenne_pocasi.`date`
+ORDER BY testy.`date`, testy.country
