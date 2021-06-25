@@ -134,9 +134,9 @@ SELECT
 	promenne_pocasi.max_gust
 FROM testy 
 LEFT JOIN promenne_casove 
-ON testy.country = promenne_casove.country AND testy.`date` = promenne_casove.`date`
+ON testy.country = promenne_casove.country
 LEFT JOIN promenne_staty
-ON testy.country = promenne_staty.country AND testy.`date` = promenne_staty.`date`
+ON testy.country = promenne_staty.country
 LEFT JOIN promenne_pocasi 
-ON testy.country = promenne_pocasi.country AND testy.`date` = promenne_pocasi.`date`
+ON testy.country = promenne_pocasi.country
 ORDER BY testy.`date`, testy.country
