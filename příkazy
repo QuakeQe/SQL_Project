@@ -139,4 +139,4 @@ LEFT JOIN promenne_staty
 ON testy.country = promenne_staty.country
 LEFT JOIN promenne_pocasi 
 ON testy.country = promenne_pocasi.country
-#ORDER BY testy.date
+ORDER BY testy.date, testy.country
